@@ -1,0 +1,17 @@
+{
+  "name": "spotify_playlist_saver",
+  "version": "1.0.0",
+  "description": "An application used to create a text screenshot of your spotify playlists in case anything were to happen to spotify.",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "author": "Will Richardson",
+  "license": "ISC",
+  "dependencies": {
+    "cookie-parser": "^1.4.4",
+    "cors": "^2.8.5",
+    "express": "^4.17.1",
+    "querystring": "^0.2.0",
+    "request": "^2.88.0"
+  }
+}
