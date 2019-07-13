@@ -1,4 +1,76 @@
 body {
     margin: 0;
-    background-clip: red;
+    font-family: Montserrat, Arial, Helvetica, sans-serif;
+    background: rgb(28, 28, 28);
+    color: white;
+    /* word-spacing: .1rem; */
+}
+
+a {
+    text-decoration: none;
+    color: white;
+}
+
+#flexContainer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    background: rgb(29, 185, 84);
+    width: 100%;
+    height: 10%;
+    padding: 0.4rem;
+}
+
+#logo {
+    height: 92.5%;
+    margin: 0 3rem 0 1.5rem;
+}
+
+#title {
+    font-size: 3.2rem;
+}
+
+#footerIcon {
+    width: 50px;
+}
+
+footer {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background: black;
+    vertical-align: middle;
+}
+
+footer a {
+    display: inline-block;
+    background: black;
+}
+
+
+.container {
+    width: 70%;
+    line-height: 2.5rem;
+    text-align: left;
+    margin: auto;
+    text-align: center;
+}
+
+.container p {
+    text-align: left;
+}
+
+#login {
+    display: inline-block;
+    background: rgb(29, 185, 84);
+    padding: 19px 45px 19px;
+    margin-top: 2rem;
+    border-radius: 500px;
+    font-weight: bold;
+    font-size: 1.2rem;
+    text-align: center;
+}
+
+#login:hover {
+    background: rgb(30, 215, 96);
 }

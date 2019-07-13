@@ -1,7 +1,7 @@
 const fs = require('fs');
 const express = require('express');
 const request = require('request');
-const rp = require('request-promise')
+const rp = require('request-promise');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const querystring = require('querystring');
@@ -97,15 +97,18 @@ app.get('/getPlaylists', async (req, res) => {
   let output = getOutput();
 
   const file = path.join(__dirname,'/public', '/playlist.txt');
-  console.log('file: ', file);
-  fs.writeFileSync(file, output);
+  
+  fs.writeFileSync(file, output, {flag: 'w+'});
+ 
   res.download(file, (err) => {
     if (err) {
       console.log(err);
+    } else {
+      console.log('Sent file successfully');
     }
     console.log('res.headersSent: ', res.headersSent);
   });
-  res.redirect('/');
+
 });
 
 
