@@ -11,6 +11,14 @@ a {
     color: white;
 }
 
+header {
+    margin-bottom: 3rem;
+}
+
+main {
+    padding-bottom: 100px;
+}
+
 #flexContainer {
     display: flex;
     align-items: center;
@@ -18,12 +26,12 @@ a {
     background: rgb(29, 185, 84);
     width: 100%;
     height: 10%;
-    padding: 0.4rem;
+    padding: 0.8rem;
 }
 
 #logo {
     height: 92.5%;
-    margin: 0 3rem 0 1.5rem;
+    margin: 0 3rem 0 2.5rem;
 }
 
 #title {
@@ -35,8 +43,9 @@ a {
 }
 
 footer {
-    position: fixed;
+    position: relative;
     bottom: 0;
+    margin-top: 0px;
     width: 100%;
     background: black;
     vertical-align: middle;
@@ -49,7 +58,7 @@ footer a {
 
 
 .container {
-    width: 70%;
+    width: 50%;
     line-height: 2.5rem;
     text-align: left;
     margin: auto;
@@ -58,9 +67,10 @@ footer a {
 
 .container p {
     text-align: left;
+    margin: 2rem;
 }
 
-#login {
+.button {
     display: inline-block;
     background: rgb(29, 185, 84);
     padding: 19px 45px 19px;
@@ -71,6 +81,6 @@ footer a {
     text-align: center;
 }
 
-#login:hover {
+.button:hover {
     background: rgb(30, 215, 96);
 }

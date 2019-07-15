@@ -13,6 +13,9 @@ const portNumber = config.portNumber;
 const client_id = config.clientId;
 const client_secret = config.clientSecret;
 const redirect_uri = 'http://' + ip + ':' + portNumber + '/authenticate';
+const url = 'http://192.168.1.3:9000/';
+console.log('url: ', url);
+console.log('redirect_uri: ', redirect_uri);
 
 const cookieStateKey = 'spotify_auth_state';
 const cookieStateLength = 16;
@@ -25,19 +28,34 @@ let listOfPlayToTracks = {};
 
 let app = express();
 
-app.use(express.static(__dirname + '/public'))
-  .use(cors())
-  .use(cookieParser());
+/*
+* Middleware
+*/
+app.use(cors());
+app.use(express.urlencoded({
+  extended: false
+}));
+app.use(cookieParser());
+app.use(express.static(__dirname + '/public'));
 
-//app.timeout = 1000 * 60 * 10;
 
+/*
+* End Points
+*/
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+
+
+app.get('/authenticated', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'authenticated.html'));
+});
+
 
 app.get('/login', (req, res) => {
   const state = generateRandomString(cookieStateLength);
   res.cookie(cookieStateKey, state);
+  console.log('Should have just stored cookie. State: ', state);
 
   const scope = 'playlist-read-private playlist-read-collaborative';
   res.redirect('https://accounts.spotify.com/authorize?' +
@@ -70,11 +88,18 @@ app.get('/authenticate', (req, res) => {
       },
       json: true
     }
+
     request.post(authOptions, (error, response, body) => {
       if (!error && response.statusCode === 200) {
         access_token = body.access_token;
         refresh_token = body.refresh_token;
-        res.redirect('/getPlaylists');
+        //res.redirect('/getPlaylists');
+        res.redirect('/authenticated');
+      } else {
+        if (error) {
+          console.log(response.statusCode);
+          console.log(error);
+        }
       }
     });
   } else {
@@ -96,22 +121,29 @@ app.get('/getPlaylists', async (req, res) => {
 
   let output = getOutput();
 
-  const file = path.join(__dirname,'/public', '/playlist.txt');
-  
-  fs.writeFileSync(file, output, {flag: 'w+'});
- 
-  res.download(file, (err) => {
+  const file = path.join(__dirname, '/public', '/playlist.txt');
+
+  fs.writeFileSync(file, output, {
+    flag: 'w+'
+  });
+
+  result = await res.download(file, (err) => {
     if (err) {
       console.log(err);
     } else {
       console.log('Sent file successfully');
     }
-    console.log('res.headersSent: ', res.headersSent);
   });
-
 });
 
 
+// app.get('*', (req, res) => {
+//   res.redirect('/');
+// });
+
+/*
+* Helper Functions 
+*/
 const getPlaylists = async () => {
 
   let options = {
@@ -162,7 +194,6 @@ const getTracks = async () => {
 
     options.qs.offset = 0;
     options.url = `https://api.spotify.com/v1/playlists/${playlistId}/tracks`;
-    //console.log('options: \n', options);
     let body = await rp.get(options);
     const numTracks = body.total;
     processTrackData(playlistName, body.items);
