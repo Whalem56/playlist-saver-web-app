@@ -12,9 +12,8 @@ const ip = config.hostIP;
 const portNumber = process.env.PORT || config.portNumber;
 const client_id = config.clientId;
 const client_secret = config.clientSecret;
-const redirect_uri = 'http://' + ip + ':' + portNumber + '/authenticate';
-const url = 'http://192.168.1.3:' + portNumber + '/';
-console.log('url: ', url);
+const redirect_uri = config.url + 'authenticate';
+console.log('url: ', config.url);
 console.log('redirect_uri: ', redirect_uri);
 
 // Cookies values
