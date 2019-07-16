@@ -22,7 +22,8 @@
         <div id="contentContainer">
             <div class="container">
                 <main id='main'>
-                    <h2 id='loading'>Chatting with Spotify. This may take a few seconds...</h2>
+                    <h2 id='loadingHeader'>Chatting with Spotify. This may take a few seconds...</h2>
+                    <p id='loadingParagraph'></p>
                     <a href="./playlist.txt" download id="download" hidden></a>
                 </main>
             </div>
@@ -44,8 +45,9 @@
                 if (this.readyState == 4 && this.status == 200) {
                     console.log(this);
                     // Typical action to be performed when the document is ready:
-                    document.querySelector("#loading").innerHTML =
-                        'Enjoy your playlists! (Whitespace will not show up in Notepad. To see formatting, use a different text editor.)';
+                    document.querySelector("#loadingHeader").innerHTML =
+                        'Enjoy your playlists!';
+                    document.querySelector("#loadingParagraph").innerHTML = '(Whitespace will not show up in Notepad. To see formatting, use a different text editor.)';
                     document.querySelector('#download').click();
                 } else if (this.readyState == 4 && this.status == 400) {
                     window.location.href = 'https://playlist-saver-web-app.herokuapp.com/';
