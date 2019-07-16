@@ -45,7 +45,7 @@
                     console.log(this);
                     // Typical action to be performed when the document is ready:
                     document.querySelector("#loading").innerHTML =
-                        'Enjoy your playlists!';
+                        'Enjoy your playlists! (Whitespace will not show up in Notepad. To see formatting, use a different text editor.)';
                     document.querySelector('#download').click();
                 } else if (this.readyState == 4 && this.status == 400) {
                     window.location.href = 'https://playlist-saver-web-app.herokuapp.com/';
