@@ -9,39 +9,31 @@ const path = require('path');
 const config = require('./config');
 
 const ip = config.hostIP;
-const portNumber = config.portNumber;
+const portNumber = process.env.PORT || config.portNumber;
 const client_id = config.clientId;
 const client_secret = config.clientSecret;
 const redirect_uri = 'http://' + ip + ':' + portNumber + '/authenticate';
-const url = 'http://192.168.1.3:9000/';
+const url = 'http://192.168.1.3:' + portNumber + '/';
 console.log('url: ', url);
 console.log('redirect_uri: ', redirect_uri);
 
-const cookieStateKey = 'spotify_auth_state';
-const cookieStateLength = 16;
-
-let access_token = null;
-let refresh_token = null;
-
-let idToPlaylistMap = [];
-let listOfPlayToTracks = {};
+// Cookies values
+const cookie_access_token = 'spotify_access_token';
+const cookie_auth_state = 'spotify_auth_state';
+const auth_state_length = 16;
 
 let app = express();
 
 /*
-* Middleware
-*/
+ * Middleware
+ */
 app.use(cors());
-app.use(express.urlencoded({
-  extended: false
-}));
 app.use(cookieParser());
 app.use(express.static(__dirname + '/public'));
 
-
 /*
-* End Points
-*/
+ * End Points
+ */
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -53,9 +45,8 @@ app.get('/authenticated', (req, res) => {
 
 
 app.get('/login', (req, res) => {
-  const state = generateRandomString(cookieStateLength);
-  res.cookie(cookieStateKey, state);
-  console.log('Should have just stored cookie. State: ', state);
+  const state = generateRandomString(auth_state_length);
+  res.cookie(cookie_auth_state, state);
 
   const scope = 'playlist-read-private playlist-read-collaborative';
   res.redirect('https://accounts.spotify.com/authorize?' +
@@ -73,7 +64,7 @@ app.get('/login', (req, res) => {
 app.get('/authenticate', (req, res) => {
   const code = req.query.code || null;
   const state = req.query.state || null;
-  const storedState = req.cookies ? req.cookies[cookieStateKey] : null;
+  const storedState = req.cookies ? req.cookies[cookie_auth_state] : null;
 
   if (state !== null && state === storedState) {
     const authOptions = {
@@ -91,35 +82,39 @@ app.get('/authenticate', (req, res) => {
 
     request.post(authOptions, (error, response, body) => {
       if (!error && response.statusCode === 200) {
-        access_token = body.access_token;
-        refresh_token = body.refresh_token;
-        //res.redirect('/getPlaylists');
-        res.redirect('/authenticated');
+        // SUCCESS
+        res.cookie(cookie_access_token, body.access_token);
+        return res.status(200).redirect('/authenticated');
       } else {
         if (error) {
           console.log(response.statusCode);
           console.log(error);
+          return res.status(400).redirect('/');
         }
       }
     });
   } else {
     console.log('State mismatch');
-    res.redirect('/');
+    res.status(400).redirect('/');
   }
 });
 
 
 app.get('/getPlaylists', async (req, res) => {
+  const access_token = req.cookies[cookie_access_token];
+  if (!access_token) {
+    console.log('Inside endpoint: getPlaylists.\n No cookie');
+    return res.redirect(400, '/');
+  }
 
-  let result;
-  // Get playlists. Store in global: idToPlaylistMap
-  result = await getPlaylists();
+  // Get playlists
+  const idPlaylistMap = await getPlaylists(access_token);
 
-  // Get tracks associated with each playlist and stores in 
-  // global: playlistTracksMapList. Reads from global : idToPlaylistMap
-  result = await getTracks();
+  // Get tracks associated with each playlist
+  const playlistTrackMap = await getTracks(idPlaylistMap, access_token);
 
-  let output = getOutput();
+  // Generate output to write to file
+  const output = getOutput(playlistTrackMap);
 
   const file = path.join(__dirname, '/public', '/playlist.txt');
 
@@ -127,24 +122,19 @@ app.get('/getPlaylists', async (req, res) => {
     flag: 'w+'
   });
 
-  result = await res.download(file, (err) => {
-    if (err) {
-      console.log(err);
-    } else {
-      console.log('Sent file successfully');
-    }
-  });
+  res.status(200).end();
 });
 
 
-// app.get('*', (req, res) => {
-//   res.redirect('/');
-// });
+app.get('*', (req, res) => {
+  res.redirect('/');
+});
 
 /*
-* Helper Functions 
-*/
-const getPlaylists = async () => {
+ * Helper Functions 
+ */
+const getPlaylists = async (access_token) => {
+  let idPlaylistMap = [];
 
   let options = {
     url: 'https://api.spotify.com/v1/me/playlists',
@@ -162,7 +152,7 @@ const getPlaylists = async () => {
 
   // Make first request for playlists. 
   let body = await rp.get(options);
-  processPlaylistData(body.items);
+  idPlaylistMap = processPlaylistData(idPlaylistMap, body.items);
   numPlaylists = body.total;
   options.qs.offset += options.qs.limit;
 
@@ -170,12 +160,16 @@ const getPlaylists = async () => {
   // the amount of playlists
   while (options.qs.offset < numPlaylists) {
     body = await rp.get(options);
-    processPlaylistData(body.items);
+    idPlaylistMap = processPlaylistData(idPlaylistMap, body.items);
     options.qs.offset += options.qs.limit;
   }
+
+  return idPlaylistMap;
 }
 
-const getTracks = async () => {
+const getTracks = async (idPlaylistMap, access_token) => {
+  let playlistTrackMap = {};
+
   let options = {
     headers: {
       'Authorization': 'Bearer ' + access_token
@@ -188,28 +182,30 @@ const getTracks = async () => {
     json: true,
   }
 
-  for (let i = 0; i < idToPlaylistMap.length; i++) {
-    const playlistId = idToPlaylistMap[i].id;
-    const playlistName = idToPlaylistMap[i].name;
+  for (let i = 0; i < idPlaylistMap.length; i++) {
+    const playlistId = idPlaylistMap[i].id;
+    const playlistName = idPlaylistMap[i].name;
 
     options.qs.offset = 0;
     options.url = `https://api.spotify.com/v1/playlists/${playlistId}/tracks`;
     let body = await rp.get(options);
     const numTracks = body.total;
-    processTrackData(playlistName, body.items);
+    processTrackData(playlistTrackMap, playlistName, body.items);
     options.qs.offset += options.qs.limit;
 
     // Continue making requests for tracks if limit is less than 
     // the amount of playlists
     while (options.qs.offset < numTracks) {
       body = await rp.get(options);
-      processTrackData(playlistName, body.items);
+      processTrackData(playlistTrackMap, playlistName, body.items);
       options.qs.offset += options.qs.limit;
     }
   }
+
+  return playlistTrackMap;
 }
 
-const processPlaylistData = (items) => {
+const processPlaylistData = (idPlaylistMap, items) => {
 
   const currMap = items.map((playlist) => {
     let pair = {};
@@ -218,10 +214,10 @@ const processPlaylistData = (items) => {
     return pair;
   });
 
-  idToPlaylistMap = idToPlaylistMap.concat(currMap);
+  return idPlaylistMap.concat(currMap);
 }
 
-const processTrackData = (playlistName, items) => {
+const processTrackData = (playlistTrackMap, playlistName, items) => {
   const parsedTracks = items.map((item) => {
 
     return {
@@ -230,19 +226,19 @@ const processTrackData = (playlistName, items) => {
     };
   });
 
-  if (listOfPlayToTracks.hasOwnProperty(playlistName)) {
-    listOfPlayToTracks[playlistName] = listOfPlayToTracks[playlistName].concat(parsedTracks);
+  if (playlistTrackMap.hasOwnProperty(playlistName)) {
+    playlistTrackMap[playlistName] = playlistTrackMap[playlistName].concat(parsedTracks);
   } else {
-    listOfPlayToTracks[playlistName] = parsedTracks;
+    playlistTrackMap[playlistName] = parsedTracks;
   }
 }
 
-const getOutput = () => {
+const getOutput = (playlistTrackMap) => {
   let output = '';
-  for (let playlist in listOfPlayToTracks) {
-    if (listOfPlayToTracks.hasOwnProperty(playlist)) {
+  for (let playlist in playlistTrackMap) {
+    if (playlistTrackMap.hasOwnProperty(playlist)) {
       output += `\n${playlist}:\n\n`;
-      listOfPlayToTracks[playlist].forEach((track) => {
+      playlistTrackMap[playlist].forEach((track) => {
         output += `\t${track.trackName}  -  ${track.trackArtist}\n`;
       });
     }
