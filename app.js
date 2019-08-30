@@ -106,20 +106,25 @@ app.get('/getPlaylists', async (req, res) => {
     return res.redirect(400, '/');
   }
 
-  // Get playlists
-  const idPlaylistMap = await getPlaylists(access_token);
+  try {
+    // Get playlists
+    const idPlaylistMap = await getPlaylists(access_token);
 
-  // Get tracks associated with each playlist
-  const playlistTrackMap = await getTracks(idPlaylistMap, access_token);
+    // Get tracks associated with each playlist
+    const playlistTrackMap = await getTracks(idPlaylistMap, access_token);
 
-  // Generate output to write to file
-  const output = getOutput(playlistTrackMap);
+    // Generate output to write to file
+    const output = getOutput(playlistTrackMap);
 
-  const file = path.join(__dirname, '/public', '/playlist.txt');
+    const file = path.join(__dirname, '/public', '/playlist.txt');
 
-  fs.writeFileSync(file, output, {
-    flag: 'w+'
-  });
+    fs.writeFileSync(file, output, {
+      flag: 'w+'
+    });
+  } catch (err) {
+    console.log(err);
+    return res.redirect(400, '/');
+  }
 
   res.status(200).end();
 });
